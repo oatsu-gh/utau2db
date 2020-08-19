@@ -80,12 +80,11 @@ def get_prefix(path_vbdir):
     return l_prefix
 
 
-def ust2otoini_for_utau2db(ust, d_table, d_consdur, l_prefix, replace=True, debug=False):
+def ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, replace=True, debug=False):
     """
     utaupy.convert.ust2otoini_romaji_cv の改造版
     改変内容-------------------------------------------
     ・dtが固定値ではなく、原音設定値から取得する
-    ・
     ---------------------------------------------------
 
     UstクラスオブジェクトからOtoIniクラスオブジェクトを生成
@@ -184,7 +183,8 @@ def main():
     l_prefix = get_prefix(path_vb)
     print(f'l_prefix: {l_prefix}')
     # 変換
-    otoini = ust2otoini_for_utau2db(ust, d_table, d_consdur, l_prefix, debug=False)
+    name_wav = os.path.splitext(os.path.basename(path_ust))[0] + '.ini'
+    otoini = ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, debug=False)
     for oto in otoini.values:
         print(f'  {oto}')
     # INIファイルを出力
@@ -196,6 +196,7 @@ def main():
     path_lab = os.path.splitext(path_ust)[0] + '.lab'
     label.write(path_lab)
     print(f'path_lab: {path_lab}')
+
 
 if __name__ == '__main__':
     main()
