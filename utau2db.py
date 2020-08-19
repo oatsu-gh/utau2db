@@ -40,7 +40,7 @@ USTをINIに変換する。通常のust2iniより複雑(歌詞によってdtを�
 import os
 import pathlib
 from glob import glob
-from pprint import pprint
+# from pprint import pprint
 
 import utaupy as up
 
@@ -53,8 +53,8 @@ def get_consonant_duration(path_vb):
     """
 
     otoini_list = glob(f'{path_vb}/**/oto.ini', recursive=True)
-    print('otoini_list in get_consonant_duration:')
-    pprint(otoini_list)
+    # print('otoini_list in get_consonant_duration:')
+    # pprint(otoini_list)
     # 原音設定から子音の長さを取得した辞書 {エイリアス:子音の長さ, ...}
     d_consdur = {}
     # oto.iniから値を取得して、エイリアスと子音の長さの辞書を作る
@@ -107,6 +107,7 @@ def ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, replace=
             dt = d_consdur[note.lyric]
         except KeyError as err:
             print(f'    [ERROR] KeyError of d_consdur in ust2otoini_for_utau2db : {err}')
+            dt = 0
         try:
             suppin_lyric = note.lyric.split()[-1]
             # プレフィックス文字列（D4とか強とか）を削除
@@ -162,42 +163,46 @@ def main():
     USTを入力させてLABを生成する。
     ついでにINIも生成しとく。
     """
-    # 変換したいファイルを入力
-    path_ust = input('path_ust        : ')
+    # 変換したいファイルがあるフォルダのパスを入力
+    path_ustdir = input('path_ustdir     : ').strip('"')
+    list_path_ust = glob(f'{path_ustdir}/**/*.ust', recursive=True)
     # utau.exe があるフォルダを入力
-    path_utauexe_dir = input('path_utauexe_dir: ')
+    path_utauexe_dir = input('path_utauexe_dir: ').strip('"')
     # かな→ローマ字変換テーブルのパス
     path_table = PATH_TABLE
-    # ustを読み取る
-    ust = up.ust.load(path_ust)
     # 変換テーブルを読み取る
     d_table = up.table.load(path_table)
 
-    # 音源のPATHをUSTから取得
-    path_vb = ust.setting.get_by_key('VoiceDir').replace('%VOICE%', f'{path_utauexe_dir}/voice/')
-    print(f'path_vb         : {path_vb}')
-    # 各エイリアスの子音の長さを辞書で取得
-    d_consdur = get_consonant_duration(path_vb)
-    # pprint(d_consdur)
-    # prefixになりうる文字列をリストで取得
-    l_prefix = get_prefix(path_vb)
-    print(f'l_prefix: {l_prefix}')
-    # 変換
-    name_wav = os.path.splitext(os.path.basename(path_ust))[0] + '.ini'
-    otoini = ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, debug=False)
-    for oto in otoini.values:
-        print(f'  {oto}')
-    # INIファイルを出力
-    path_ini = os.path.splitext(path_ust)[0] + '.ini'
-    otoini.write(path_ini)
-    print(f'path_ini: {path_ini}')
-    # そのままLABに変換
-    label = up.convert.otoini2label(otoini)
-    path_lab = os.path.splitext(path_ust)[0] + '.lab'
-    label.write(path_lab)
-    print(f'path_lab: {path_lab}')
+    for path_ust in list_path_ust:
+        # ustを読み取る
+        ust = up.ust.load(path_ust)
+        # 音源のPATHをUSTから取得
+        path_vb = ust.setting.get_by_key('VoiceDir').replace('%VOICE%', f'{path_utauexe_dir}/voice/')
+        print('--------------------------------------------------------------------------------')
+        print(f'path_vb         : {path_vb}')
+        # 各エイリアスの子音の長さを辞書で取得
+        d_consdur = get_consonant_duration(path_vb)
+        # pprint(d_consdur)
+        # prefixになりうる文字列をリストで取得
+        l_prefix = get_prefix(path_vb)
+        print(f'l_prefix: {l_prefix}')
+        # 変換
+        name_wav = os.path.splitext(os.path.basename(path_ust))[0] + '.ini'
+        otoini = ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, debug=False)
+        # INIファイルを出力
+        path_ini = os.path.splitext(path_ust)[0] + '.ini'
+        otoini.write(path_ini)
+        print(f'path_ini: {path_ini}')
+        # そのままLABに変換
+        label = up.convert.otoini2label(otoini)
+        path_lab = os.path.splitext(path_ust)[0] + '.lab'
+        label.write(path_lab)
+        print(f'path_lab: {path_lab}')
 
 
 if __name__ == '__main__':
+    print('_____ξ・ヮ・) < utau2db v0.0.1 ________')
+    # print('Copyright (c) 2001-2020 Python Software Foundation')
+    print('Copyright (c) 2020 oatsun')
     main()
-    print('under developing')
+    input('\nPress Enter to exit.')
