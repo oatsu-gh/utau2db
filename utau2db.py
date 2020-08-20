@@ -85,6 +85,7 @@ def ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, replace=
     utaupy.convert.ust2otoini_romaji_cv の改造版
     改変内容-------------------------------------------
     ・dtが固定値ではなく、原音設定値から取得する
+    ・「- か」のような先頭の音は、左ブランクを発声開始位置として扱う。
     ---------------------------------------------------
 
     UstクラスオブジェクトからOtoIniクラスオブジェクトを生成
@@ -179,7 +180,7 @@ def main():
         # 音源のPATHをUSTから取得
         path_vb = ust.setting.get_by_key('VoiceDir').replace('%VOICE%', f'{path_utauexe_dir}/voice/')
         print('--------------------------------------------------------------------------------')
-        print(f'path_vb         : {path_vb}')
+        print(f'path_vb : {path_vb}')
         # 各エイリアスの子音の長さを辞書で取得
         d_consdur = get_consonant_duration(path_vb)
         # pprint(d_consdur)
