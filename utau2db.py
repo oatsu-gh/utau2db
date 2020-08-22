@@ -39,11 +39,13 @@ USTをINIに変換する。通常のust2iniより複雑(歌詞によってdtを�
 """
 import os
 import pathlib
-from glob import glob
 import re
-# from pprint import pprint
+from glob import glob
 
 import utaupy as up
+
+# from pprint import pprint
+
 
 PATH_TABLE = 'table/kana2romaji_sjis_for_oto2lab.table'
 
@@ -55,7 +57,7 @@ def is_startvowel(lyric):
     return re.match(r'- [あいうえおをん]', lyric) is not None
 
 
-def get_consonant_duration(path_vb):
+def get_consonant_duration(path_otoini_dir):
     """
     原音設定の値を読み取る
     ・「- か」のような先頭の音は、オーバーラップの代わりに左ブランクを子音開始位置として扱い、
@@ -64,7 +66,7 @@ def get_consonant_duration(path_vb):
       先行発声の位置を左ブランクの位置にずらす。
     """
 
-    list_otoini = glob(f'{path_vb}/**/oto.ini', recursive=True)
+    list_otoini = glob(f'{path_otoini_dir}/**/oto.ini', recursive=True)
     # print('list_otoini in get_consonant_duration:')
     # pprint(list_otoini)
     # 原音設定から子音の長さを取得した辞書 {エイリアス:子音の長さ, ...}
@@ -85,13 +87,13 @@ def get_consonant_duration(path_vb):
     return d_consdur
 
 
-def get_prefix(path_vbdir):
+def get_prefix(path_otoini_dir):
     """
-    path_vbdir: UTAU音源のフォルダのパス
+    path_otoini_dirdir: UTAU音源のフォルダのパス
     prefix の一覧を取得しようとする。
     音源の子フォルダ名がprefixになっていると信じる。
     """
-    p_vbdir = pathlib.Path(path_vbdir)
+    p_vbdir = pathlib.Path(path_otoini_dir)
     l_prefix = [str(p).split('\\')[-1] for p in p_vbdir.iterdir() if p.is_dir()]
 
     return l_prefix
@@ -154,7 +156,7 @@ def ust2otoini_for_utau2db(ust, name_wav, d_table, d_consdur, l_prefix, replace=
         # 1音素のときはノート開始位置に先行発声を配置
         if len(phonemes) == 1:
             if note.lyric.startswith('- '):
-                oto.preutterance = 3 * dt // 2
+                oto.preutterance -= dt // 2
 
         # 2,3音素の時はノート開始位置に先行発声を配置、その手前にオーバーラップを配置
         elif len(phonemes) in (2, 3):
@@ -186,9 +188,12 @@ def main():
     """
     # 変換したいファイルがあるフォルダのパスを入力
     path_ustdir = input('path_ustdir     : ').strip('"')
-    list_path_ust = glob(f'{path_ustdir}/**/*.ust', recursive=True)
-    # utau.exe があるフォルダを入力
-    path_utauexe_dir = input('path_utauexe_dir: ').strip('"')
+    list_path_ust = glob(f'{path_ustdir}/*.ust', recursive=True)
+    # utau.exe があるフォルダを入力 # NOTE: 原音設定フォルダを手動設定にしたから無効化
+    # path_utauexe_dir = input('path_utauexe_dir: ').strip('"')
+    # 原音設定のoto.iniがあるフォルダのパスを入力
+    # もとの音源と同じディレクトリ構成が良い
+    path_otoini_dir = input('path_otoini_dir : ').strip('"')
     # かな→ローマ字変換テーブルのパス
     path_table = PATH_TABLE
     # 変換テーブルを読み取る
@@ -199,14 +204,14 @@ def main():
         print(f'path_ust: {path_ust}')
         # ustを読み取る
         ust = up.ust.load(path_ust)
-        # 音源のPATHをUSTから取得
-        path_vb = ust.setting.get_by_key('VoiceDir').replace('%VOICE%', f'{path_utauexe_dir}/voice/')
-        print(f'path_vb : {path_vb}')
+        # 原音設定のPATHをUSTから取得 # NOTE: ここじゃなくて手動入力にした
+        # path_otoini_dir = ust.setting.get_by_key('VoiceDir').replace('%VOICE%', f'{path_utauexe_dir}/voice/')
+        print(f'path_otoini_dir : {path_otoini_dir}')
         # 各エイリアスの子音の長さを辞書で取得
-        d_consdur = get_consonant_duration(path_vb)
+        d_consdur = get_consonant_duration(path_otoini_dir)
         # pprint(d_consdur)
         # prefixになりうる文字列をリストで取得
-        l_prefix = get_prefix(path_vb)
+        l_prefix = get_prefix(path_otoini_dir)
         print(f'l_prefix: {l_prefix}')
         # 変換
         name_wav = os.path.splitext(os.path.basename(path_ust))[0] + '.wav'
