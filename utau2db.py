@@ -87,6 +87,7 @@ def get_consonant_duration(path_vb):
 
 def get_prefix(path_vbdir):
     """
+    path_vbdir: UTAU音源のフォルダのパス
     prefix の一覧を取得しようとする。
     音源の子フォルダ名がprefixになっていると信じる。
     """
