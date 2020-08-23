@@ -198,7 +198,7 @@ def main():
 
 
 if __name__ == '__main__':
-    print('_____ξ・ヮ・) < utau2db v0.0.1 ________')
+    print('_____ξ・ヮ・) < utau2db v1.0.0 ________')
     # print('Copyright (c) 2001-2020 Python Software Foundation')
     print('Copyright (c) 2020 oatsu')
     main()
