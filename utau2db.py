@@ -1,4 +1,4 @@
-#!python
+#! /ust/bin/env python3
 # coding: utf-8
 # Copyright (c) oatsu
 """
@@ -20,10 +20,11 @@ UST上での原音のパラメータといっしょのが欲しい
 ・USTから音源のPATHを取得
 
 """
-import os
 import pathlib
 import re
 from glob import glob
+from os.path import basename, isdir, splitext
+from pprint import pprint
 
 import utaupy as up
 
@@ -47,8 +48,7 @@ def get_suffix(path_vb):
     音源の子フォルダ名がsuffixになっていると信じる。
     """
     p_vb = pathlib.Path(path_vb)
-    l_suffix = [str(p).split('\\')[-1]
-                for p in p_vb.iterdir() if p.is_dir()]
+    l_suffix = [str(p).split('\\')[-1] for p in p_vb.iterdir() if p.is_dir()]
 
     return l_suffix
 
@@ -94,9 +94,13 @@ def note2oto(note, t_start_ms, name_wav):
     # USTの先行発声を新規Otoの先行発声にセット
     oto.preutterance = float(note.get_by_key('PreUtterance'))
     # USTのSTP（切り落とし）を踏まえて、原音の左ブランクを新規Otoの左ブランクにセット
-    oto.offset = t_start_ms - oto.preutterance + float(note.get_by_key('StartPoint'))
+    try:
+        stp = float(note.get_by_key('StartPoint'))
+    except KeyError:
+        stp = 0.0
+    oto.offset = t_start_ms - oto.preutterance
     # USTのノート終端位置(先行発声までの時間とノート長の合計)を新規Otoの右ブランクにセット
-    oto.cutoff2 = oto.offset + note.length_ms
+    oto.cutoff2 = oto.offset + oto.preutterance + note.length_ms
     # 子音部固定範囲は先行発声と同じ位置に設定（USTに情報がないため）
     oto.consonant = oto.preutterance
 
@@ -108,7 +112,7 @@ def note2oto(note, t_start_ms, name_wav):
     return oto
 
 
-def ust2otoini_for_utau2db(ust, d_table):
+def ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav):
     """
     utaupy.convert.ust2otoini_romaji_cv の改造版
     改変内容-------------------------------------------
@@ -119,10 +123,10 @@ def ust2otoini_for_utau2db(ust, d_table):
     """
     # 最終ノートが休符じゃない場合を対策
     ust.make_finalnote_R()
-    # 出力するOtoIniに書き込むために、USTから出力WAVファイル名を取得
-    name_wav = ust.setting.get_by_key('OutFile')
-    # 原音設定ファイルを取得するために、USTから原音フォルダのPATHを取得
-    path_vb = ust.setting.get_by_key('VoiceDir')
+    # 出力するOtoIniに書き込むために、USTから出力WAVファイル名を取得 # NOTE: USTファイル名からに変更
+    # name_wav = ust.setting.get_by_key('OutFile')
+    # 原音設定をまとめた辞書
+    # d_gennon = get_gennon_setting(path_vb)
     # サフィックス一覧を取得する
     l_suffix = get_suffix(path_vb)
 
@@ -141,7 +145,7 @@ def ust2otoini_for_utau2db(ust, d_table):
         oto.alias = oto.alias.split()[-1]
         # かな→ローマ字変換
         try:
-            oto.alias = d_table[oto.alias]
+            oto.alias = ' '.join(d_table[oto.alias])
         except KeyError as err:
             print(f"    [WARN] KeyError of d_table in ust2otoini_for_utau2db : '{err}'")
 
@@ -162,7 +166,10 @@ def main():
     """
     # 変換したいファイルがあるフォルダのパスを入力
     path_ustdir = input('path_ustdir     : ').strip('"')
-    list_path_ust = glob(f'{path_ustdir}/*.ust', recursive=True)
+    if isdir(path_ustdir):
+        list_path_ust = glob(f'{path_ustdir}/*.ust', recursive=True)
+    else:
+        list_path_ust = [path_ustdir]
     # utau.exe があるフォルダを入力 # NOTE: 原音設定フォルダを手動設定にしたから無効化
     path_utauexe_dir = input('path_utauexe_dir: ').strip('"')
     # かな→ローマ字変換テーブルのパス
@@ -170,36 +177,44 @@ def main():
     # 変換テーブルを読み取る
     d_table = up.table.load(path_table)
 
+    pprint(list_path_ust)
+
     for path_ust in list_path_ust:
         print('--------------------------------------------------------------------------------')
-        print(f'path_ust: {path_ust}')
+        print(f'  path_ust: {path_ust}')
         # ustを読み取る
         ust = up.ust.load(path_ust)
-        # 原音設定のPATHをUSTから取得 # NOTE: ここじゃなくて手動入力にした
+        # 原音設定のPATHをUSTから取得
         path_vb = ust.setting.get_by_key('VoiceDir').replace(
-            '%VOICE%', f'{path_utauexe_dir}/voice/')
-        print(f'path_vb : {path_vb}')
+            '%VOICE%', f'{path_utauexe_dir}\\voice\\')
+        print(f'  path_vb : {path_vb}')
         # suffixになりうる文字列をリストで取得
         l_suffix = get_suffix(path_vb)
-        print(f'l_suffix: {l_suffix}')
+        print(f'  l_suffix: {l_suffix}')
         # UstをOtoIniに変換
-        otoini = ust2otoini_for_utau2db(ust, d_table)
+        name_wav = splitext(basename(path_ust))[0] + '.wav'
+        otoini = ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav)
         # INIファイルを出力
-        path_ini = os.path.splitext(path_ust)[0] + '.ini'
+        path_ini = splitext(path_ust)[0] + '.ini'
         otoini.write(path_ini)
-        print(f'path_ini: {path_ini}')
+        print(f'  path_ini: {path_ini}')
         # そのままLABに変換
         label = up.convert.otoini2label(otoini)
         # 発声時間が負のラベルがないか検査
         label.check_invalid_time()
-        path_lab = os.path.splitext(path_ust)[0] + '.lab'
+        path_lab = splitext(path_ust)[0] + '.lab'
         label.write(path_lab)
-        print(f'path_lab: {path_lab}')
+        print(f'  path_lab: {path_lab}')
 
 
 if __name__ == '__main__':
     print('_____ξ・ヮ・) < utau2db v1.0.0 ________')
     # print('Copyright (c) 2001-2020 Python Software Foundation')
     print('Copyright (c) 2020 oatsu')
-    main()
+    # 確認
+    flag = input('USTのパラメータ自動調整はしましたか？(y/n): ')
+    if flag == 'y':
+        main()
+    else:
+        print(f'[ERROR] UTAUで「パラメータ自動調整を適用」してください。')
     input('\nPress Enter to exit.')
