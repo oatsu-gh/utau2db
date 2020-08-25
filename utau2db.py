@@ -34,11 +34,11 @@ import utaupy as up
 PATH_TABLE = 'table/kana2romaji_sjis_for_oto2lab.table'
 
 
-def is_startvowel(lyric):
-    """
-    「- あ」「- い」「- う」「- え」「- お」「- を」「- ん」で始まるかを判定
-    """
-    return re.match(r'- [あいうえおをん]', lyric) is not None
+# def is_startvowel(lyric):
+#     """
+#     「- あ」「- い」「- う」「- え」「- お」「- を」「- ん」で始まるかを判定
+#     """
+#     return re.match(r'- [あいうえおをん]', lyric) is not None
 
 
 def get_suffix(path_vb):
@@ -94,21 +94,17 @@ def note2oto(note, t_start_ms, name_wav):
     # USTの先行発声を新規Otoの先行発声にセット
     oto.preutterance = float(note.get_by_key('PreUtterance'))
     # USTのSTP（切り落とし）を踏まえて、原音の左ブランクを新規Otoの左ブランクにセット
-    try:
-        stp = float(note.get_by_key('StartPoint'))
-    except KeyError:
-        stp = 0.0
+    # 先行発声の値がずれているのでSTPは不要
+    # try:
+    #     stp = float(note.get_by_key('StartPoint'))
+    # except KeyError:
+    #     stp = 0.0
     oto.offset = t_start_ms - oto.preutterance
     # USTのノート終端位置(先行発声までの時間とノート長の合計)を新規Otoの右ブランクにセット
     oto.cutoff2 = oto.offset + oto.preutterance + note.length_ms
     # 子音部固定範囲は先行発声と同じ位置に設定（USTに情報がないため）
     oto.consonant = oto.preutterance
 
-    # 先頭音だった場合の処理
-    if oto.alias.startswith('- '):
-        oto.overlap = 0
-        if is_startvowel(oto.alias):
-            oto.preutterance = 0
     return oto
 
 
@@ -138,6 +134,11 @@ def ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav):
     for note in ust.notes:
         # 原音設定を参照してNoteをOtoに変換
         oto = note2oto(note, t_start_ms, name_wav)
+        if oto.alias.startswith('- '):
+            if oto.alias in ['- あ', '- い', '- う', '- え', '- お', '- を', '- ん']:
+                oto.preutterance = 0
+            else:
+                oto.overlap = min(0, oto.overlap)
         # サフィックス文字列（D4とか強とか）を削除
         for suffix in l_suffix:
             oto.alias = oto.alias.rstrip(suffix)
