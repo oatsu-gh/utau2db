@@ -90,8 +90,7 @@ def note2oto(note, t_start_ms, name_wav):
     # USTの歌詞を新規Otoのエイリアスにセット
     oto.alias = note.lyric
     # USTの発声開始位置とオーバーラップの中間を新規Otoのオーバーラップにセット
-    oto.overlap = \
-        float(note.get_by_key('StartPoint')) / 2 + float(note.get_by_key('VoiceOverlap')) / 2
+    oto.overlap = float(note.get_by_key('VoiceOverlap')) / 2
     # USTの先行発声を新規Otoの先行発声にセット
     oto.preutterance = float(note.get_by_key('PreUtterance'))
     # USTのSTP（切り落とし）を踏まえて、原音の左ブランクを新規Otoの左ブランクにセット
