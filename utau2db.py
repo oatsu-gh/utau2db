@@ -1,4 +1,4 @@
-#! /ust/bin/env python3
+#!/ust/bin/env python3
 # coding: utf-8
 # Copyright (c) oatsu
 """
@@ -21,7 +21,7 @@ UST上での原音のパラメータといっしょのが欲しい
 
 """
 import pathlib
-import re
+# import re
 from glob import glob
 from os.path import basename, isdir, splitext
 from pprint import pprint
@@ -90,7 +90,8 @@ def note2oto(note, t_start_ms, name_wav):
     # USTの歌詞を新規Otoのエイリアスにセット
     oto.alias = note.lyric
     # USTの発声開始位置とオーバーラップの中間を新規Otoのオーバーラップにセット
-    oto.overlap = float(note.get_by_key('VoiceOverlap')) / 2
+    # TEMP: リツv2.1.2テストで、子音開始位置をSTPにセット
+    oto.overlap = float(note.get_by_key('VoiceOverlap'))
     # USTの先行発声を新規Otoの先行発声にセット
     oto.preutterance = float(note.get_by_key('PreUtterance'))
     # USTのSTP（切り落とし）を踏まえて、原音の左ブランクを新規Otoの左ブランクにセット
@@ -198,7 +199,7 @@ def main():
         # そのままLABに変換
         label = up.convert.otoini2label(otoini)
         # 発声時間が負のラベルがないか検査
-        label.check_invalid_time()
+        label.check_invalid_time(threshold=1)
         path_lab = splitext(path_ust)[0] + '.lab'
         label.write(path_lab)
         print(f'  path_lab: {path_lab}')
@@ -213,5 +214,5 @@ if __name__ == '__main__':
     if flag == 'y':
         main()
     else:
-        print(f'[ERROR] UTAUで「パラメータ自動調整を適用」してください。')
+        print('[ERROR] UTAUで「パラメータ自動調整を適用」してください。')
     input('\nPress Enter to exit.')
