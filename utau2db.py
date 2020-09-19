@@ -31,8 +31,10 @@ import utaupy as up
 # from pprint import pprint
 
 
+# NOTE: SUFFIX＿LIST を音源ごとに書き換えてね。
 PATH_TABLE = 'table/kana2romaji_sjis_for_oto2lab.table'
-
+SUFFIX_LIST = ('A3', 'C5', 'D4', 'G4')
+LABEL_THRESHOLD = 5 #ms
 
 # def is_startvowel(lyric):
 #     """
@@ -41,16 +43,16 @@ PATH_TABLE = 'table/kana2romaji_sjis_for_oto2lab.table'
 #     return re.match(r'- [あいうえおをん]', lyric) is not None
 
 
-def get_suffix(path_vb):
-    """
-    path_vb: UTAU音源のフォルダのパス
-    suffix の一覧を取得しようとする。
-    音源の子フォルダ名がsuffixになっていると信じる。
-    """
-    p_vb = pathlib.Path(path_vb)
-    l_suffix = [str(p).split('\\')[-1] for p in p_vb.iterdir() if p.is_dir()]
-
-    return l_suffix
+# def get_suffix_from_vbdir(path_vb):
+#     """
+#     path_vb: UTAU音源のフォルダのパス
+#     suffix の一覧を取得しようとする。
+#     音源の子フォルダ名がsuffixになっていると信じる。
+#     """
+#     p_vb = pathlib.Path(path_vb)
+#     l_suffix = [str(p).split('\\')[-1] for p in p_vb.iterdir() if p.is_dir()]
+#
+#     return l_suffix
 
 
 # def get_gennon_setting(path_vb):
@@ -76,12 +78,12 @@ def note2oto(note, t_start_ms, name_wav):
     """
     # TODO: 子音速度を取得して、子音の長さを計算しなおす。
     # 子音速度
-    try:
-        velocity = int(note.get_by_key('Velocity'))
-        if velocity != 100:
-            print(' [WARN] get_consonant_duration_from_note: 未対応なので子音速度を100にしてください。')
-    except KeyError:
-        velocity = 100
+    # try:
+    #     velocity = int(note.get_by_key('Velocity'))
+    #     if velocity != 100:
+    #         print(' [WARN] get_consonant_duration_from_note: 未対応なので子音速度を100にしてください。')
+    # except KeyError:
+    #     velocity = 100
 
     # ラベルにするための新規Oto
     oto = up.otoini.Oto()
@@ -89,8 +91,12 @@ def note2oto(note, t_start_ms, name_wav):
     oto.filename = name_wav
     # USTの歌詞を新規Otoのエイリアスにセット
     oto.alias = note.lyric
+<<<<<<< Updated upstream
     # USTの発声開始位置とオーバーラップの中間を新規Otoのオーバーラップにセット
     # TEMP: リツv2.1.2テストで、子音開始位置をSTPにセット
+=======
+    # USTオーバーラップの位置を新規Otoのオーバーラップにセット
+>>>>>>> Stashed changes
     oto.overlap = float(note.get_by_key('VoiceOverlap'))
     # USTの先行発声を新規Otoの先行発声にセット
     oto.preutterance = float(note.get_by_key('PreUtterance'))
@@ -121,7 +127,8 @@ def ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav):
     # 原音設定をまとめた辞書
     # d_gennon = get_gennon_setting(path_vb)
     # サフィックス一覧を取得する
-    l_suffix = get_suffix(path_vb)
+    # l_suffix = get_suffix_from_vbdir(path_vb)
+    l_suffix = SUFFIX_LIST
 
     # ラベリング用OtoIni生成元にするリスト
     l_for_otoini = []
@@ -133,12 +140,12 @@ def ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav):
         oto = note2oto(note, t_start_ms, name_wav)
         if oto.alias.startswith('- '):
             if oto.alias in ['- あ', '- い', '- う', '- え', '- お', '- を', '- ん']:
-                oto.preutterance = 0
+                oto.preutterance = oto.overlap
             else:
                 oto.overlap = min(0, oto.overlap)
         # サフィックス文字列（D4とか強とか）を削除
         for suffix in l_suffix:
-            oto.alias = oto.alias.rstrip(suffix)
+            oto.alias = oto.alias.replace(suffix, '')
         # プレフィックス文字列 ('-' とか 'a' ) を削除
         oto.alias = oto.alias.split()[-1]
         # かな→ローマ字変換
@@ -152,8 +159,7 @@ def ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav):
         # 今のノート終了位置が次のノート開始位置
         t_start_ms += note.length_ms
 
-    otoini = up.otoini.OtoIni()
-    otoini.values = l_for_otoini
+    otoini = up.otoini.OtoIni(l_for_otoini)
     return otoini
 
 
@@ -187,8 +193,8 @@ def main():
             '%VOICE%', f'{path_utauexe_dir}\\voice\\')
         print(f'  path_vb : {path_vb}')
         # suffixになりうる文字列をリストで取得
-        l_suffix = get_suffix(path_vb)
-        print(f'  l_suffix: {l_suffix}')
+        # l_suffix = get_suffix(path_vb)
+        # print(f'  l_suffix: {l_suffix}')
         # UstをOtoIniに変換
         name_wav = splitext(basename(path_ust))[0] + '.wav'
         otoini = ust2otoini_for_utau2db(ust, d_table, path_vb, name_wav)
@@ -199,14 +205,18 @@ def main():
         # そのままLABに変換
         label = up.convert.otoini2label(otoini)
         # 発声時間が負のラベルがないか検査
+<<<<<<< Updated upstream
         label.check_invalid_time(threshold=1)
+=======
+        label.check_invalid_time(threshold=LABEL_THRESHOLD)
+>>>>>>> Stashed changes
         path_lab = splitext(path_ust)[0] + '.lab'
         label.write(path_lab)
         print(f'  path_lab: {path_lab}')
 
 
 if __name__ == '__main__':
-    print('_____ξ・ヮ・) < utau2db v1.0.0 ________')
+    print('_____ξ・ヮ・) < utau2db v1.2.0 ________')
     # print('Copyright (c) 2001-2020 Python Software Foundation')
     print('Copyright (c) 2020 oatsu')
     # 確認

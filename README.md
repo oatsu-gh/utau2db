@@ -11,7 +11,7 @@
 
 -   Windows 10 (2004)
 -   Python3.8
--   utaupy 1.6.1
+-   utaupy 1.7.0
 
 ### UTAUの音声を使うメリット
 
