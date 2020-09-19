@@ -1,4 +1,4 @@
-#!/ust/bin/env python3
+#! /ust/bin/env python3
 # coding: utf-8
 # Copyright (c) oatsu
 """
@@ -34,7 +34,7 @@ import utaupy as up
 # NOTE: SUFFIX＿LIST を音源ごとに書き換えてね。
 PATH_TABLE = 'table/kana2romaji_sjis_for_oto2lab.table'
 SUFFIX_LIST = ('A3', 'C5', 'D4', 'G4')
-LABEL_THRESHOLD = 5 #ms
+LABEL_THRESHOLD = 5  # ms
 
 # def is_startvowel(lyric):
 #     """
@@ -91,12 +91,7 @@ def note2oto(note, t_start_ms, name_wav):
     oto.filename = name_wav
     # USTの歌詞を新規Otoのエイリアスにセット
     oto.alias = note.lyric
-<<<<<<< Updated upstream
-    # USTの発声開始位置とオーバーラップの中間を新規Otoのオーバーラップにセット
-    # TEMP: リツv2.1.2テストで、子音開始位置をSTPにセット
-=======
     # USTオーバーラップの位置を新規Otoのオーバーラップにセット
->>>>>>> Stashed changes
     oto.overlap = float(note.get_by_key('VoiceOverlap'))
     # USTの先行発声を新規Otoの先行発声にセット
     oto.preutterance = float(note.get_by_key('PreUtterance'))
@@ -205,11 +200,7 @@ def main():
         # そのままLABに変換
         label = up.convert.otoini2label(otoini)
         # 発声時間が負のラベルがないか検査
-<<<<<<< Updated upstream
-        label.check_invalid_time(threshold=1)
-=======
         label.check_invalid_time(threshold=LABEL_THRESHOLD)
->>>>>>> Stashed changes
         path_lab = splitext(path_ust)[0] + '.lab'
         label.write(path_lab)
         print(f'  path_lab: {path_lab}')
